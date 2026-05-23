@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sniply — URL Shortener</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --card: #1a1a26; --card2: #20202f;
+    --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+    --accent: #7c6ff7; --accent2: #a99fff; --accent-glow: rgba(124,111,247,0.18);
+    --text: #f0eff8; --muted: #8b8aa8; --muted2: #5e5d78;
+    --success: #4ade80; --danger: #f87171; --mono: 'Courier New', monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  .grid-bg { position: fixed; inset: 0; background-image: linear-gradient(rgba(124,111,247,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,111,247,0.04) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
+  .container { position: relative; z-index: 1; max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+  header { text-align: center; margin-bottom: 2.5rem; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+  .logo-icon { width: 44px; height: 44px; background: var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; }
+  .logo-text { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .logo-text span { color: var(--accent2); }
+  header p { color: var(--muted); font-size: 0.95rem; margin-top: 0.3rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; margin-bottom: 1.25rem; }
+  .section-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); margin-bottom: 1rem; }
+  .input-group { display: flex; gap: 10px; align-items: stretch; }
+  .input-wrapper { flex: 1; position: relative; }
+  .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted2); font-size: 18px; pointer-events: none; }
+  input { width: 100%; padding: 0.85rem 1rem 0.85rem 2.75rem; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 0.95rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  input::placeholder { color: var(--muted2); }
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 0.85rem 1.4rem; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; transition: opacity 0.15s, transform 0.1s; white-space: nowrap; }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
+  .btn-ghost:hover { background: var(--card2); color: var(--text); }
+  .btn-danger-ghost { background: transparent; border: 1px solid transparent; color: var(--danger); padding: 0.4rem 0.6rem; font-size: 0.8rem; }
+  .btn-danger-ghost:hover { background: rgba(248,113,113,0.1); }
+  .custom-alias-row { display: flex; align-items: center; gap: 10px; margin-top: 0.75rem; }
+  .alias-prefix { color: var(--muted2); font-family: var(--mono); font-size: 0.9rem; white-space: nowrap; }
+  .result-box { margin-top: 1.25rem; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .result-short { font-family: var(--mono); font-size: 1.05rem; color: var(--accent2); font-weight: 600; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1rem 1.25rem; text-align: center; }
+  .stat-num { font-size: 1.75rem; font-weight: 700; color: var(--accent2); line-height: 1; margin-bottom: 0.3rem; }
+  .stat-lbl { font-size: 0.75rem; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.08em; }
+  .search-wrap { position: relative; margin-bottom: 1rem; }
+  .links-table { width: 100%; border-collapse: collapse; }
+  .links-table th { text-align: left; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); padding: 0 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  .links-table td { padding: 0.85rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.9rem; }
+  .links-table tr:last-child td { border-bottom: none; }
+  .td-short { font-family: var(--mono); color: var(--accent2); font-weight: 600; }
+  .td-orig { color: var(--muted); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .td-clicks { text-align: center; font-weight: 500; }
+  .td-date { color: var(--muted2); font-size: 0.8rem; white-space: nowrap; }
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--muted2); }
+  .empty-state i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; opacity: 0.4; }
+  .error-msg { color: var(--danger); font-size: 0.82rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 6px; }
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card2); border: 1px solid var(--border2); border-radius: 10px; padding: 0.7rem 1.25rem; font-size: 0.88rem; color: var(--success); display: flex; align-items: center; gap: 8px; z-index: 100; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-link"></i></div>
+      <span class="logo-text">Snip<span>ly</span></span>
+    </div>
+    <p>Shorten, share, and track your links with ease</p>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="st-total">0</div><div class="stat-lbl">Links Created</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-clicks">0</div><div class="stat-lbl">Total Clicks</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-top">—</div><div class="stat-lbl">Top Link Clicks</div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Shorten a URL</div>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <i class="ti ti-world input-icon"></i>
+        <input type="url" id="longUrl" placeholder="Paste your long URL here…" />
+      </div>
+      <button class="btn btn-primary" onclick="shortenUrl()"><i class="ti ti-scissors"></i> Shorten</button>
+    </div>
+    <div class="custom-alias-row">
+      <span class="alias-prefix">localhost:5000/</span>
+      <div class="input-wrapper" style="flex:1">
+        <i class="ti ti-pencil input-icon" style="font-size:16px"></i>
+        <input type="text" id="customAlias" placeholder="custom alias (optional)" style="font-family:monospace; font-size:0.88rem;" />
+      </div>
+    </div>
+    <div id="error-msg" class="error-msg" style="display:none"></div>
+    <div id="result-box" class="result-box" style="display:none">
+      <div>
+        <div style="font-size:0.75rem; color:var(--muted2); margin-bottom:4px;">Your shortened link</div>
+        <span class="result-short" id="result-short"></span>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-ghost" onclick="copyResult()" style="padding:0.5rem 0.85rem; font-size:0.82rem"><i class="ti ti-copy"></i> Copy</button>
+        <a id="result-link" href="#" target="_blank" class="btn btn-ghost" style="padding:0.5rem 0.85rem; font-size:0.82rem; text-decoration:none"><i class="ti ti-external-link"></i> Open</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-label">Manage Links</div>
+    <div class="search-wrap">
+      <i class="ti ti-search input-icon"></i>
+      <input type="text" id="searchBox" placeholder="Search links…" oninput="renderTable()" />
+    </div>
+    <table class="links-table">
+      <thead><tr>
+        <th>Short URL</th><th>Original URL</th><th style="text-align:center">Clicks</th><th>Created</th><th></th>
+      </tr></thead>
+      <tbody id="links-body"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" style="display:none">
+      <i class="ti ti-link-off"></i>
+      <p>No links yet. Paste a URL above to get started.</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"><i class="ti ti-check"></i> <span id="toast-msg">Done!</span></div>
+
+<script>
+let allLinks = [];
+
+async function fetchLinks() {
+  const res = await fetch('/api/links');
+  allLinks = await res.json();
+  updateStats();
+  renderTable();
+}
+
+async function shortenUrl() {
+  const url = document.getElementById('longUrl').value.trim();
+  const alias = document.getElementById('customAlias').value.trim();
+  clearError();
+
+  const res = await fetch('/api/shorten', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, alias })
+  });
+
+  const data = await res.json();
+  if (!res.ok) { showError(data.error); return; }
+
+  document.getElementById('result-short').textContent = data.short_url;
+  document.getElementById('result-link').href = data.short_url;
+  document.getElementById('result-box').style.display = 'flex';
+  document.getElementById('longUrl').value = '';
+  document.getElementById('customAlias').value = '';
+  showToast('Link created!');
+  fetchLinks();
+}
+
+async function deleteLink(code) {
+  await fetch(`/api/links/${code}`, { method: 'DELETE' });
+  showToast('Link deleted.');
+  fetchLinks();
+}
+
+function copyResult() {
+  navigator.clipboard.writeText(document.getElementById('result-short').textContent);
+  showToast('Copied to clipboard!');
+}
+
+function copyCode(shortUrl) {
+  navigator.clipboard.writeText(shortUrl);
+  showToast('Copied!');
+}
+
+function updateStats() {
+  document.getElementById('st-total').textContent = allLinks.length;
+  const total = allLinks.reduce((s, l) => s + l.clicks, 0);
+  document.getElementById('st-clicks').textContent = total;
+  const top = allLinks.length ? Math.max(...allLinks.map(l => l.clicks)) : '—';
+  document.getElementById('st-top').textContent = top;
+}
+
+function renderTable() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const body = document.getElementById('links-body');
+  const empty = document.getElementById('empty-state');
+  const filtered = allLinks.filter(l => !q || l.code.includes(q) || l.original_url.toLowerCase().includes(q));
+  if (!allLinks.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  body.innerHTML = filtered.map(l => {
+    const shortUrl = `${location.origin}/${l.code}`;
+    const date = new Date(l.created_at + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `<tr>
+      <td class="td-short"><a href="${shortUrl}" target="_blank" style="color:var(--accent2);text-decoration:none">${shortUrl}</a></td>
+      <td class="td-orig" title="${l.original_url}">${l.original_url}</td>
+      <td class="td-clicks">${l.clicks}</td>
+      <td class="td-date">${date}</td>
+      <td style="text-align:right">
+        <button class="btn btn-ghost" onclick="copyCode('${shortUrl}')" style="padding:0.35rem 0.6rem; font-size:0.8rem; margin-right:4px"><i class="ti ti-copy"></i></button>
+        <button class="btn btn-danger-ghost" onclick="deleteLink('${l.code}')"><i class="ti ti-trash"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.style.display = 'flex';
+  el.innerHTML = `<i class="ti ti-alert-circle"></i> ${msg}`;
+}
+
+function clearError() { document.getElementById('error-msg').style.display = 'none'; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+document.getElementById('longUrl').addEventListener('keydown', e => { if (e.key === 'Enter') shortenUrl(); });
+fetchLinks();
+</script>
+</body>
+</html>
