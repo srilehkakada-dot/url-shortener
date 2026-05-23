@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify, redirect, render_template, abort
 from database import init_db, add_link, get_link, get_all_links, delete_link, increment_clicks
 import validators
@@ -67,4 +68,4 @@ def not_found(e):
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
